@@ -5,9 +5,6 @@ master(N, M) ->
   % 1. spawn N processes
   {FirstNode, LastNode} = init_node_ring(N-1), % 0-based
   % 2. send M tokens
-  % extract this into function, for M loop
-  % send_counter(FirstNode, LastNode, 1),
-  % send_counter(FirstNode, LastNode, 10),
   send_counters(FirstNode, LastNode, M-1), % 0-based
   % 3. receive responses
   receive_output(N, []).
