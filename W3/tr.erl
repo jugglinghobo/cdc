@@ -35,15 +35,15 @@ send_counter(last, FirstNode, LastNode, Counter) ->
 init_node_ring(0) -> false; % error condition
 init_node_ring(1) -> false; % error condition
 init_node_ring(N) ->
-  FirstNode = spawn(tr, init_node, [self()]),
+  FirstNode = spawn(?MODULE, init_node, [self()]),
   LastNode = init_nodes(N-1, FirstNode),
   {FirstNode, LastNode}. % return {FirstNode, LastNode} for reuse
 
 init_nodes(N, Successor) when N > 0 ->
-  Node = spawn(tr, init_node, [self(), Successor]),
+  Node = spawn(?MODULE, init_node, [self(), Successor]),
   init_nodes(N-1, Node);
 init_nodes(_, Successor) ->
-  spawn(tr, init_node, [self(), Successor]). % return the last created node
+  spawn(?MODULE, init_node, [self(), Successor]). % return the last created node
 
 write_to_file(Pid, Pid_Succ, Counter) ->
   io:format("Pid: ~p~nPid_Succ: ~p~nCounter: ~p~n", [Pid, Pid_Succ, Counter]).
@@ -67,7 +67,8 @@ receive_counters(RootPid) ->
     % FIRST node receives last msg from its predecessor after last msg has cycled ring
     % Only in this case can we terminate the FIRST node
     {last, counter, Counter} ->
-      io:format("FIRST (~p): last counter received, TERMINATE!~n", [self()]);
+      io:format("FIRST (~p): last counter received, TERMINATE!~n", [self()]),
+      exit("TERMINATE!");
     % FIRST node receives msg from MASTER
     {counter, Successor, Counter} ->
       io:format("FIRST (~p)|~p: Initial {counter, ~p, ~p} received, sending {counter, ~p, ~p} to ~p~n", [self(), Counter, Successor, Counter, Successor, Counter, Successor]),
@@ -93,5 +94,6 @@ receive_counters(RootPid, Successor) ->
       Successor ! {last, counter, (Counter + 1)},
       RootPid ! {self(), Successor, Counter},
       io:format("(~p): sent MASTER (~p) ! {~p, ~p, ~p}~n", [self(), RootPid, self(), Successor, Counter])
-      io:format("(~p): last msg sent, TERMINATE!")
+      io:format("(~p): last msg sent, TERMINATE!"),
+      exit("TERMINATE!")
   end.
